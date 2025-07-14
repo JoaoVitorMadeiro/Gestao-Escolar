@@ -1,4 +1,5 @@
 import mysql.connector
+import os
 
 def conectar_banco():
     return mysql.connector.connect(
@@ -61,6 +62,69 @@ def deletar_aluno(conn):
         print("Aluno não encontrado.")
     cursor.close()
 
+def listar_views(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT table_name FROM information_schema.views WHERE table_schema = 'gestao_escolar_final2'")
+    views = cursor.fetchall()
+    print("\nViews:")
+    for v in views:
+        print(f"View: {v[0]}")
+    cursor.close()
+
+
+def listar_triggers(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT trigger_name, event_manipulation, event_object_table FROM information_schema.triggers WHERE trigger_schema = 'gestao_escolar_final2'")
+    triggers = cursor.fetchall()
+    print("\nTriggers:")
+    for t in triggers:
+        print(f"Trigger: {t[0]}, Evento: {t[1]}, Tabela: {t[2]}")
+    cursor.close()
+
+
+def listar_procedures(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT routine_name FROM information_schema.routines WHERE routine_type='PROCEDURE' AND routine_schema = 'gestao_escolar_final2'")
+    procedures = cursor.fetchall()
+    print("\nProcedures:")
+    for p in procedures:
+        print(f"Procedure: {p[0]}")
+    cursor.close()
+
+
+def mostrar_transacoes_ativas(conn):
+    cursor = conn.cursor()
+    cursor.execute("SHOW PROCESSLIST")
+    processos = cursor.fetchall()
+    print("\nTransações ativas (processos):")
+    for proc in processos:
+        print(f"Id: {proc[0]}, Usuário: {proc[1]}, Host: {proc[2]}, DB: {proc[3]}, Comando: {proc[4]}, Tempo: {proc[5]}, Estado: {proc[6]}, Info: {proc[7]}")
+    cursor.close()
+
+def executar_script_sql(conn, caminho_arquivo):
+    if not os.path.exists(caminho_arquivo):
+        print(f"Arquivo não encontrado: {caminho_arquivo}")
+        return
+    with open(caminho_arquivo, 'r', encoding='utf-8') as f:
+        script = f.read()
+    cursor = conn.cursor()
+    try:
+        for result in cursor.execute(script, multi=True):
+            pass  # Apenas executa, não precisa processar resultados
+        conn.commit()
+        print(f"Script '{os.path.basename(caminho_arquivo)}' executado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao executar script '{os.path.basename(caminho_arquivo)}': {e}")
+    cursor.close()
+
+
+def executar_todos_scripts(conn):
+    base = os.path.dirname(os.path.abspath(__file__))
+    arquivos = ['VIEW.sql', 'trigger.sql', 'procedures.sql']
+    for nome in arquivos:
+        caminho = os.path.join(base, nome)
+        executar_script_sql(conn, caminho)
+
 def menu():
     try:
         conn = conectar_banco()
@@ -70,6 +134,11 @@ def menu():
             print("2. Consultar aluno por CPF")
             print("3. Inserir novo aluno")
             print("4. Deletar aluno")
+            print("5. Listar views do banco")
+            print("6. Listar triggers do banco")
+            print("7. Listar procedures do banco")
+            print("8. Mostrar transações/processos ativos")
+            print("9. Executar scripts SQL (VIEW, TRIGGER, PROCEDURES)")
             print("0. Sair")
 
             opcao = input("Escolha uma opção: ")
@@ -81,6 +150,16 @@ def menu():
                 inserir_aluno(conn)
             elif opcao == '4':
                 deletar_aluno(conn)
+            elif opcao == '5':
+                listar_views(conn)
+            elif opcao == '6':
+                listar_triggers(conn)
+            elif opcao == '7':
+                listar_procedures(conn)
+            elif opcao == '8':
+                mostrar_transacoes_ativas(conn)
+            elif opcao == '9':
+                executar_todos_scripts(conn)
             elif opcao == '0':
                 break
             else:
