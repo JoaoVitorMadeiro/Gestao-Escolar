@@ -16,36 +16,23 @@ SELECT id_aluno, nome_completo, cpf FROM alunos WHERE cpf = @cpf_aluno_novo;
 
 DELIMITER $$
 
--- Remove o procedimento se ele já existir para evitar erros de "já existe"
 DROP PROCEDURE IF EXISTS matricular_aluno_na_turma;
 
--- Cria um procedimento para matricular um aluno em uma turma
--- com verificação de vagas disponíveis.
--- Parâmetros:
---   p_id_aluno: O ID do aluno a ser matriculado.
---   p_id_turma: O ID da turma onde o aluno será matriculado.
 CREATE PROCEDURE matricular_aluno_na_turma(
     IN p_id_aluno INT,
     IN p_id_turma INT
 )
 BEGIN
-    -- Declara uma variável local para armazenar o número de vagas disponíveis.
-    -- ATENÇÃO: As declarações de variáveis (DECLARE) devem vir no início do bloco BEGIN.
     DECLARE v_vagas_disponiveis INT DEFAULT 0;
 
     START TRANSACTION;
 
-    -- Seleciona o número de vagas da turma.
-    -- 'FOR UPDATE' bloqueia a linha da turma para evitar que outras transações
-    -- alterem as vagas enquanto esta transação está em andamento (evita problemas de concorrência).
     SELECT vagas INTO v_vagas_disponiveis
     FROM turmas
     WHERE id_turma = p_id_turma
     FOR UPDATE;
 
-    -- Verifica se há vagas disponíveis na turma
     IF v_vagas_disponiveis > 0 THEN
-        -- Se houver vagas, decrementa o número de vagas na tabela 'turmas'
         UPDATE turmas
         SET vagas = vagas - 1
         WHERE id_turma = p_id_turma;
@@ -62,12 +49,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
--- Para executar o procedimento de matrícula:
--- 1. Certifique-se de que o aluno com o 'ID_DO_ALUNO_AQUI' já existe na tabela 'alunos'.
--- 2. Certifique-se de que a turma com o 'ID_DA_TURMA_AQUI' existe e tem vagas.
--- Exemplo de uso:
--- CALL matricular_aluno_na_turma(1, 1); -- Tente matricular o aluno com ID 1 na turma com ID 1
 
 SELECT
     id_turma,
